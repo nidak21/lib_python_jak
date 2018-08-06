@@ -1,0 +1,162 @@
+Notes on Using the Python tabledataset.py classes.
+
+tabledataset.py defines several classes convenient for working with datasets
+that can be represented as "tables", i.e, a collection of records (rows),
+each with the same fields (columns).
+
+The main classes of interest are:
+
+class TableDataSet
+    - the base class
+    - can add/delete/update records
+    - maintains indexes on selected fields for efficient searching
+    - fields can be single-valued (one Python object, usually a string per
+	record) or multi-valued (a Python list of values per record)
+    - so for instance a "gene" dataset (each record is a gene), can have a
+	multi-valued field for "GenBank ID" and include all the GenBank IDs
+	for the gene.
+    - indexes know how to handle single and multi-valued fields
+    - can iterate over rcds, write out selected fields of rcds, etc.
+    - each record looks like a python dictionary mapping field names to
+	values
+    - each record has an integer "key" that is assigned by the TableDataSet
+	(you can often ignore these, but some methods let you get and use
+	 keys and/or lists of keys)
+
+class TextFileTableDataset
+    - a subclass of TableDataset that knows how to read in a TableDataSet
+	from a delimited file, with or without column headers
+    
+class TableDataSetBucketizer
+    - can bucketize two TableDataSets on specified fields in those datasets
+	and return the 0:1, 1:0, 1:1, 1:n, n:1, n:n buckets.
+    - it uses the indexes so it is fast.
+
+class TableDataSetBucketizerReporter
+    - can write out individual buckets from a TableDataSetBucketizer in a
+	simple format
+    
+An obvious needed subclass: instantiate a TableDataSet from an SQL query.
+This would be easy to add, I just never got to it.
+
+Adding subclasses that read other types of file formats (XML, GenBank, ...)
+would also be easy to add.
+
+These classes were developed and used by Jim in the initial 18 months of the
+KOMP project to build and maintain the "KOMP gene list". They need better
+documentation, but they are pretty robust and debugged.
+
+They do however keep everything in memory, so if your datasets are too huge,
+there is a limitation here. Jim has used them to analyze all the gene traps
+loaded into MGI - roughly 500k records (comparing two such datasets) - with
+no problems.
+
+Basic, Example Usage:
+
+#################################################################
+# Example 1: create a simple TableDataSet
+#################################################################
+
+from tabledatasetlib import *
+
+fields = ["MGI ID", "symbol", "Chr"]	# 3 fields
+
+ds = TableDataSet( "my genes", fields)	# creates an empty dataset
+ds.addIndexes( ["MGI ID", "Chr"] )	# define indexes on 2 fields
+
+for something....			# iterate and add records
+    ...get a record from somewhere...
+    rcd[ "MGI ID"] = "MGI:1235"
+    rcd[ "symbol"] = "Agene"
+    rcd[ "Chr"]    = "X"
+
+    ds.addRecord( rcd)
+
+# ----------------------------------------------------------------
+# Can iterate over records, say, sorted by Chr, then by symbol:
+
+for rcd in ds.getRecords( sortField=[ "Chr", "symbol"] ):
+    ... can refer to rcd["MGI ID"], rcd["symbol"], etc.
+
+# ----------------------------------------------------------------
+# Can access records via the indexes:
+
+onChrX = ds.getRecordsByIndex( "Chr", "X")	# returns a list of rcds on X
+
+# ----------------------------------------------------------------
+# Can write records to a delimited file
+
+fp = open("myFile.txt", "w")
+ds.printRecords( fp, headerline="y")	# prints all rcds, fields w/ a column
+					#   header line.
+					# Can pass params to specify a
+					# subset of rcds to print, which
+					# fields in which order, and sort
+					# options.
+fp.close()
+
+
+#################################################################
+# Example 2: Reading tab delimited files w/ multi-value fields
+#	     and Bucketize them on particular fields.
+#################################################################
+
+from tabledatasetlib import *
+
+# ----------------------------------------------------------------
+# instantiate and read in a dataset from a file,
+# get field names from the file's column header line,
+
+multiFields = { "Ensembl IDs" : "," }	# one field is multi-valued w/ ","
+					#  as the value delimiter
+
+ds1 = TextFileTableDataSet( "my genes",		# data set "name"
+			   "myfile.txt",	# file name
+			   multiValued=multiFields,
+			   readNow=1		# read the file now
+			   )
+ds1.addIndexes( ["MGI ID", "Ensembl IDs"] )	# define indexes on 2 fields
+
+# ----------------------------------------------------------------
+# instantiate and read a second dataset,
+# Define field names here (say, this file lacks a column header line)
+
+fields = ["MGI ID", "Ensembl IDs", "Chr"]	# 3 fields
+multiFields = { "Ensembl IDs" : "/" }		# one is multi-valued w/ "/"
+						#  as the value delimiter
+
+ds2 = TextFileTableDataSet( "other gene set",	# data set "name"
+			   "otherfile.txt",	# file name
+			   fieldnames=fields,
+			   multiValued=multiFields,
+			   readNow=0		# don't read on instantiation
+			   )
+ds2.addIndexes( ["MGI ID", "Ensembl IDs"] )	# define indexes on 2 fields
+ds2.readRecords()				# READ NOW
+
+# ----------------------------------------------------------------
+# Bucketize the two datasets....
+
+# instantiate a bucketizer, tell it which datasets, which fields in each
+#  dataset to use for comparison.
+# Can bucketize on multiple fields at once & field names don't have to be
+#  identical in the two datasets.
+
+myBucketizer = TableDataSetBucketizer(	ds1, [ "Ensembl IDs"],
+					ds2, [ "Ensembl IDs"])
+
+myBucketizer.run()		# run the bucketizer
+
+# ----------------------------------------------------------------
+# Now process buckets (in this example, only the 1:1 and 1:n buckets
+
+for (ds1Key, ds2Key) in myBucketizer.get1_1():	# process 1-1 bucket items
+    ds1Rcd = ds1.getRecordByKey( ds1Key)	
+    ds2Rcd = ds2.getRecordByKey( ds2Key)
+    ... do something with dsRcd1 or dsRcd2...
+
+for (ds1Key, ds2Keys) in myBucketizer.get1_n():	# process 1-n bucket items
+    ds1Rcd = ds1.getRecordByKey( ds1Key)	
+    for ds2Rcd in getRecords( keys = ds2Keys):
+	# iterate over the rcds in ds2 associated with ds1Rcd
+	...
