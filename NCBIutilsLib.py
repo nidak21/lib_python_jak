@@ -93,8 +93,7 @@ def doSearch(db,		# eutils db name (pubmed, PMC, ...)
     outputX = URLReader.readURL(url) 
     if debug: sys.stderr.write( "Output from Esearch:\n%s\n" % outputX)
 
-    xmlDoc = minidom.parseString(outputX)
-
+    xmlDoc = minidom.parseString(outputX)	# what about errors?
     count = int(xmlDoc.getElementsByTagName("Count")[0].childNodes[0].data)
 
     # get webenv params
@@ -135,26 +134,38 @@ def doPost(db,			# eutils db name (pubmed, PMC, ...)
 def getResults(db,		# eutils db name (pubmed, PMC, ...)
 		webenvURLParams,
 		op='summary',	# 'summary' or 'fetch' output
-		retmode='json',	# eutils desired output format
+		retmode='xml',	# eutils desired output format
 		version='2.0',	# eutils output version (affects json?)
+		retmax=None,	# max number of results to return
+				# None of 0 means no max.
+				# 10000 is XML output max for eutils
 		URLReader=surl.ThrottledURLReader(),
 		debug=False,
     ):
     """ Do a eutils.esearch or efetch from results on history server 
 	    and return results (string)
-	Retmode is usually 'json' or 'xml' or 'text'. Maybe other options
-	depending on the db.
+	Retmode is usually 'json' or 'xml' or 'text'.
+	Maybe other options depending on the db.
+	(json is not supported for fetch)
 	Note: for json output, eutils have a 500 record output limit,
 	and you get an eutils error if you don't have &retmax
     """
     # result type
     if op == 'summary': url = ESUMMARY_BASE
-    elif op == 'fetch': url = EFETCH_BASE
-    else: raise Exception('Invalid SearchResults operation: %s' % str(op))
+    elif op == 'fetch':
+	if retmode == 'json':
+	    raise Exception('NCBI efetch only supports xml return mode\n')
+	url = EFETCH_BASE
+    else: raise Exception('Invalid SearchResults operation: %s\n' % str(op))
 
     url += webenvURLParams + \
 		"&db=%s&retmode=%s&version=%s" % (db, retmode, str(version))
-    if retmode == 'json': url += "&retmax=500"
+
+    if retmax == None or retmax == 0: retmax = 10000	# eutils XML max
+    if retmode == 'json':
+	url += "&retmax=%d" % min(retmax, 500)
+    else: url += "&retmax=%d" % retmax
+
     if debug: sys.stderr.write( "Summary/Fetch URL:\n%s\n" % url )
 
     output = URLReader.readURL(url)
@@ -165,8 +176,10 @@ def getResults(db,		# eutils db name (pubmed, PMC, ...)
 def getSearchResults(db,		# eutils db name (pubmed, PMC, ...)
 		    queryString,	# esearch query string
 		    op='summary',	# 'summary' or 'fetch' output
-		    retmode='json',	# eutils desired output format
+		    retmode='xml',	# eutils desired output format
 		    version='2.0',	# eutils output version (affects json?)
+		    retmax=10000,	# max number of results to return
+					# 10000 is XML output max for eutils
 		    URLReader=surl.ThrottledURLReader(),
 		    debug=False,
     ):
@@ -183,6 +196,7 @@ def getSearchResults(db,		# eutils db name (pubmed, PMC, ...)
     # get result summary or fetch
     output = getResults(db, webenvURLParams,
 				op=op, retmode=retmode, version=version,
+				retmax=retmax,
 				URLReader=URLReader, debug=debug)
     return count, output, webenvURLParams
 # -------------------------
