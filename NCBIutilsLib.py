@@ -4,15 +4,58 @@
 Library for NCBI eutils API helper functions
 Author: Jim
 
+*** Examples ***
+    URLReader = surl.ThrottledURLReader()
+    query = 'Aging+Cell[TA]+AND+(2017/01/01:2017/02/01[PPDAT]+AND+foxo[TITLE})'
+    ids = [28440906, 28256074, ]
+
+(0) count, output, webenv = getSearchResults('pmc', query, op='summary',)
+# output is xml
+    
+(1) count, output, webenv = getSearchResults('pubmed', query, op='summary',
+					retmode='json', URLReader=URLReader)
+    jsonResults = json.loads(output)
+
+(2) output, webenv = getPostResults('pubmed', ids, op='fetch',
+					    rettype='medline', retmode='text',)
+# output is in medline format
+# NOTICE RETTYPE VS RETMODE, see below... 
+#      this confused the heck out of me for hours
+
 *** Eutils Docs ***
 https://www.ncbi.nlm.nih.gov/books/NBK25501/
 https://www.ncbi.nlm.nih.gov/books/NBK3827/#pubmedhelp.How_do_I_search_by_journal_na
+
+*** PubMed *** 
+Haven't found eutils docs specific to PubMed. But have learned some subtlities.
+Output options for esummary are different from efetch:
+    esummary:
+	only supports xml (default) and json.
+	specify in URL via &retmode=(xml|json)
+	(not sure what &rettype does, if anything)
+	json will only return up to 500 records
+    efetch:
+	supports xml, medline, abstract, ASN.1, PMID list (note, no json)
+	You select these with a combination of &rettype and &retmode.
+	See https://www.ncbi.nlm.nih.gov/books/NBK25499/table/chapter4.T._valid_values_of__retmode_and/?report=objectonly
+	ASN.1 (default)	: &retmode=asn.1
+	xml		: &retmode=xml
+	medline		: &rettype=medline
+	PMID list	: &rettype=uilist
+	abstract	: &rettype=abstract
+
+    For the functions below, I've set the output formats default: xml
 
 *** PubMed Central Docs *** (this module is not using these yet)
 https://www.ncbi.nlm.nih.gov/pmc/tools/developers/
 https://www.ncbi.nlm.nih.gov/pmc/tools/id-converter-api/
 https://www.ncbi.nlm.nih.gov/pmc/tools/oa-service/
 https://www.ncbi.nlm.nih.gov/pmc/tools/ftp/
+Output options:
+    efetch:
+	xml (default)	: &retmode=xml
+	medline		: &rettype=medline
+    esummary:  ?? (assume default is &retmode=xml)
 
 Eutils XML DTD links
 **** Pubmed ***
@@ -135,31 +178,33 @@ def getResults(db,		# eutils db name (pubmed, PMC, ...)
 		webenvURLParams,
 		op='summary',	# 'summary' or 'fetch' output
 		retmode='xml',	# eutils desired output format
+		rettype=None,	# eutils rettype option
 		version='2.0',	# eutils output version (affects json?)
 		retmax=None,	# max number of results to return
 				# None of 0 means no max.
 				# 10000 is XML output max for eutils
+				#   500 is json output max for eutils
 		URLReader=surl.ThrottledURLReader(),
 		debug=False,
     ):
     """ Do a eutils.esearch or efetch from results on history server 
 	    and return results (string)
-	Retmode is usually 'json' or 'xml' or 'text'.
-	Maybe other options depending on the db.
-	(json is not supported for fetch)
+	Retmode/rettype: see notes above
 	Note: for json output, eutils have a 500 record output limit,
 	and you get an eutils error if you don't have &retmax
     """
-    # result type
+    # result type (could check for more option combination errors)
     if op == 'summary': url = ESUMMARY_BASE
     elif op == 'fetch':
 	if retmode == 'json':
-	    raise Exception('NCBI efetch only supports xml return mode\n')
+	    raise Exception('NCBI efetch does not support json return mode\n')
 	url = EFETCH_BASE
     else: raise Exception('Invalid SearchResults operation: %s\n' % str(op))
 
     url += webenvURLParams + \
 		"&db=%s&retmode=%s&version=%s" % (db, retmode, str(version))
+    if rettype != None:
+	url += "&rettype=%s" % rettype
 
     if retmax == None or retmax == 0: retmax = 10000	# eutils XML max
     if retmode == 'json':
@@ -177,6 +222,7 @@ def getSearchResults(db,		# eutils db name (pubmed, PMC, ...)
 		    queryString,	# esearch query string
 		    op='summary',	# 'summary' or 'fetch' output
 		    retmode='xml',	# eutils desired output format
+		    rettype=None,	# eutils rettype option
 		    version='2.0',	# eutils output version (affects json?)
 		    retmax=10000,	# max number of results to return
 					# 10000 is XML output max for eutils
@@ -186,25 +232,23 @@ def getSearchResults(db,		# eutils db name (pubmed, PMC, ...)
     """ Do esearch and get results as esummary or efetch.
 	Return count of results, results (string), webenv/query_key as
 	    eutils URL params
-	Retmode is usually 'json' or 'xml' or 'text'. Maybe other options
-	depending on the db.
     """
     # do search, save results in eutils history
     count, webenvURLParams = doSearch(db, queryString,
 				URLReader=URLReader, debug=debug)
 
     # get result summary or fetch
-    output = getResults(db, webenvURLParams,
-				op=op, retmode=retmode, version=version,
-				retmax=retmax,
-				URLReader=URLReader, debug=debug)
+    output = getResults(db, webenvURLParams, op=op, retmode=retmode,
+		    rettype=rettype, version=version, retmax=retmax,
+		    URLReader=URLReader, debug=debug)
     return count, output, webenvURLParams
 # -------------------------
 
 def getPostResults(db,		# eutils db name (pubmed, PMC, ...)
 		    ids,	# list of IDs to post and get results for
 		    op='summary',	# 'summary' or 'fetch' output
-		    retmode='json',	# eutils desired output format
+		    retmode='xml',	# eutils desired output format
+		    rettype=None,	# eutils rettype option
 		    version='2.0',	# eutils output version (affects json?)
 		    URLReader=surl.ThrottledURLReader(),
 		    debug=False,
@@ -215,7 +259,8 @@ def getPostResults(db,		# eutils db name (pubmed, PMC, ...)
 
     # get result summary or fetch
     output = getResults(db, webenvURLParams, op=op, retmode=retmode,
-		    version=version, URLReader=URLReader, debug=debug)
+		    rettype=rettype, version=version, URLReader=URLReader,
+		    debug=debug)
     return output, webenvURLParams
 
 # -------------------------
@@ -224,44 +269,62 @@ if __name__ == "__main__":      # test code
     URLReader = surl.ThrottledURLReader()
     query = 'Aging+Cell[TA]+AND+(2017/01/01:2017/02/01[PPDAT]+AND+foxo[TITLE})'
 
-    print '-' * 30
+    print '-' * 30 + " Search pubmed"
     count, webenv = doSearch('pubmed',query, URLReader=URLReader, debug=False)
     print "webenv: '%s'" % webenv
     print "count: %d" % count
     print
 
-    print '-' * 30
+    print '-' * 30 + " SearchResults pubmed summary json"
     count, output, webenv = getSearchResults('pubmed',query, op='summary',
-		retmode='json', version='2.0', URLReader=URLReader, debug=False)
-    print "output: \n%s" % output[:2000]
+		retmode='json', URLReader=URLReader, debug=False)
+    print "output: \n%s" % output[:500]
     print
 
-    print '-' * 30
+    print '-' * 30 + " SearchResults, pubmed, summary xml"
+    count, output, webenv = getSearchResults('pubmed',query, op='summary',
+		retmode='xml', URLReader=URLReader, debug=False)
+    print "output: \n%s" % output[:500]
+    print
+
+    print '-' * 30 + " SearchResults, pmc, summary json"
     count, output, webenv = getSearchResults('pmc', query, op='summary',
-		retmode='xml', version='1.0', URLReader=URLReader, debug=False)
-    print "output: \n%s" % output[:2000]
+		retmode='json', version='2.0', URLReader=URLReader, debug=False)
+    print "output: \n%s" % output[:500]
     print
 
-    print '-' * 30
+    print '-' * 30 + " SearchResults pmc, summary, xml"
+    count, output, webenv = getSearchResults('pmc', query, op='summary',
+		retmode='xml', version='2.0', URLReader=URLReader, debug=False)
+    print "output: \n%s" % output[:500]
+    print
+
+    print '-' * 30 + " SearchResults pubmed fetch medline"
+    count, output, webenv = getSearchResults('pubmed',query, op='fetch',
+	    rettype='medline', retmode='text', URLReader=URLReader, debug=True)
+    print "output: \n%s" % output[:500]
+    print
+
+    print '-' * 30 + " SearchResults pmc fetch xml"
     count, output, webenv = getSearchResults('pmc',query, op='fetch',
-		retmode='xml', version='1.0', URLReader=URLReader, debug=False)
-    print "output: \n%s" % output[:2000]
+		retmode='xml', version='2.0', URLReader=URLReader, debug=False)
+    print "output: \n%s" % output[:500]
     print
 
     ids = [28440906, 28256074, ]
-    print '-' * 30
+    print '-' * 30 + " Post pubmed"
     webenv = doPost('pubmed', ids, URLReader=URLReader, debug=False)
     print "webenv: '%s'" % webenv
     print
 
-    print '-' * 30
+    print '-' * 30 + " PostResults pubmed summary xml"
     output, webenv = getPostResults('pubmed', ids, op='summary',
 		retmode='xml', version='2.0', URLReader=URLReader, debug=True)
-    print "output: \n%s" % output[:2000]
+    print "output: \n%s" % output[:500]
     print
 
-    print '-' * 30
+    print '-' * 30 + " PostResults pubmed fetch medline"
     output, webenv = getPostResults('pubmed', ids, op='fetch',
-		retmode='xml', version='2.0', URLReader=URLReader, debug=True)
-    print "output: \n%s" % output[:2000]
+	    rettype='medline', retmode='text', URLReader=URLReader, debug=True)
+    print "output: \n%s" % output[:500]
     print
