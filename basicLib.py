@@ -1,15 +1,17 @@
-#!/usr/bin/env python2.7 
+#!/usr/bin/env python3
 #
 # basic utilities that Jim uses
 #
 ##############################
+import re
 
+nonAsciiRE = re.compile(r'[^\x00-\x7f]')        # match non-ascii chars
 def removeNonAscii(text):
     """ return a string with all the non-ascii characters in text replaced
         by a space.
         Gets rid of those nasty unicode characters.
     """
-    return  ''.join([i if ord(i) < 128 else ' ' for i in text])
+    return nonAsciiRE.sub(' ',text)
 ##############################
 
 def sublistFind(biglist, sublist, *args):
@@ -33,51 +35,51 @@ def sublistFind(biglist, sublist, *args):
     if len(args) >= 2: end   = args[1]	# got two, override
 
     realEnd = end - lenSublist +1 # 1st index in biglist that cannot participate
-				  #   in match because of sublist length
+                                  #   in match because of sublist length
     while start < realEnd:
-	try:		# use index() assuming it is faster then my own loop
-	    firstI = biglist.index(firstElement, start, realEnd)
-	except ValueError:			# first element not found
-	    return -1
+        try:		# use index() assuming it is faster then my own loop
+            firstI = biglist.index(firstElement, start, realEnd)
+        except ValueError:			# first element not found
+            return -1
 
-	# matched first element at firstI
-	j = 1		# index in sublist of next element to check
-			#   when j == len(sublist), we matched the whole sublist
-	i = firstI +1	# index in biglist of next element to check
-	while j < lenSublist:
-	    if biglist[i] != sublist[j]:
-		break
-	    else: 	# keep going
-		j += 1
-		i += 1
+        # matched first element at firstI
+        j = 1		# index in sublist of next element to check
+                        #   when j == len(sublist), we matched the whole sublist
+        i = firstI +1	# index in biglist of next element to check
+        while j < lenSublist:
+            if biglist[i] != sublist[j]:
+                break
+            else: 	# keep going
+                j += 1
+                i += 1
 
-	if j == lenSublist: return firstI
-	else:               start += 1		# try again
+        if j == lenSublist: return firstI
+        else:               start += 1		# try again
 
     return -1
 ##############################
 
 if __name__ == "__main__":	# ad hoc test code
     x = [1,2,3,4,5,6,3,4,7]
-    print sublistFind(x,[3,4,7],0,100)
-    print sublistFind(x,[3,4,7],6,9)
+    print(sublistFind(x,[3,4,7],0,100))
+    print(sublistFind(x,[3,4,7],6,9))
 
-    print sublistFind(x,[3,4,5])
-    print sublistFind(x,[3,4,5], 2)
-    print sublistFind(x,[3,4,5], 3)
-    print sublistFind(x,[3,4,5], 4)
-    print sublistFind(x,[3,4,], 2)
-    print sublistFind(x,[3,4,], 3)
-    print sublistFind(x,[3,4,], 7)
-    print sublistFind(x,[3,4,], 18)
-#    print sublistFind(x,[3,4,8])
-#    print sublistFind(x,[9,4,8])
-    print sublistFind(x,[3,4,7],0,8)
-    print sublistFind(x,[3,4,7],7,9)
-#    print sublistFind(x,[])
-#    print sublistFind([3],[3,4,5])
-#    print sublistFind([3],[3,])
+    print(sublistFind(x,[3,4,5]))
+    print(sublistFind(x,[3,4,5], 2))
+    print(sublistFind(x,[3,4,5], 3))
+    print(sublistFind(x,[3,4,5], 4))
+    print(sublistFind(x,[3,4,], 2))
+    print(sublistFind(x,[3,4,], 3))
+    print(sublistFind(x,[3,4,], 7))
+    print(sublistFind(x,[3,4,], 18))
+#    print(sublistFind(x,[3,4,8]))
+#    print(sublistFind(x,[9,4,8]))
+    print(sublistFind(x,[3,4,7],0,8))
+    print(sublistFind(x,[3,4,7],7,9))
+#    print(sublistFind(x,[]))
+#    print(sublistFind([3],[3,4,5]))
+#    print(sublistFind([3],[3,]))
 
-#    print sublistFind(x,[3,4,8])
-#    print sublistFind(x,[9,4,8])
-#    print sublistFind(x,[3,4,7])
+#    print(sublistFind(x,[3,4,8]))
+#    print(sublistFind(x,[9,4,8]))
+#    print(sublistFind(x,[3,4,7]))
