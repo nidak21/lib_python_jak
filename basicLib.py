@@ -1,18 +1,24 @@
 #!/usr/bin/env python3
 #
-# basic utilities that Jim uses
+# misc, basic utilities that Jim uses
 #
 ##############################
-import re
+import sys
 
-nonAsciiRE = re.compile(r'[^\x00-\x7f]')        # match non-ascii chars
-def removeNonAscii(text):
-    """ return a string with all the non-ascii characters in text replaced
-        by a space.
-        Gets rid of those nasty unicode characters.
-    """
-    return nonAsciiRE.sub(' ',text)
-##############################
+def importPyFile(pyFile):
+    ''' Given a python file pathname (w/ or w/o .py),
+        import the file as a module.
+        return the module.
+    '''
+    pyDir, pyFile = os.path.split(pyFile)
+    if pyFile.endswith('.py'): pyFile = pyFile[:-3]
+
+    if pyDir != '': sys.path.insert(0, pyDir)
+    myModule =  __import__(pyFile)
+    if pyDir != '': del sys.path[0]
+
+    return myModule
+#-----------------------------------
 
 def sublistFind(biglist, sublist, *args):
     """
@@ -20,6 +26,8 @@ def sublistFind(biglist, sublist, *args):
     Return -1 if not found
     optional args[0] = 1st index to start the search from
     optional args[1] = 1st index that should not participate in a match
+
+    Intended to work like string.find(subStr [,start [, end]]) for lists.
 
     Maybe there is a more elegant or simpler way to do this...
     """
