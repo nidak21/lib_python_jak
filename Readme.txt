@@ -1,2 +1,2 @@
-# lib_python_jak
+# basicPyLib
 Basic python modules jim uses
