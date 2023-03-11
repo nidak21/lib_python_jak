@@ -1,0 +1,12 @@
+#!/bin/csh
+# repeat a command, 1st arg tells how many seconds to sleep
+if ($#argv < 2) then
+	echo first argument must be number of seconds to sleep
+	exit(5)
+endif
+set foo=$argv[1]
+shift argv
+while (1)
+	$argv[*]
+	sleep $foo
+end

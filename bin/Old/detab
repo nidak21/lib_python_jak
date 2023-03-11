@@ -1,0 +1,27 @@
+#!/bin/csh
+#
+# detab files, convert tabs to spaces, leaving file dates the same
+#echo detab args: $*
+#set verbose echo
+set noglob
+if ($#argv == 0 || '-?' == "${1}"  ||  '-help' == "${1}" ) then
+    echo "Usage: detab files"
+    echo "	changes all tabs to the appropriate number of spaces"
+    echo " (uses the expand command, see man expand)"
+    exit 5
+endif
+
+foreach i ($*)
+    #if { test -h $i } continue	# target is symbolic link, skip it
+    if (-d $i)  continue	# target is directory, skip it
+    if (-w $i) then
+	set target=$i:t		#strip pathname
+	expand $i > /tmp/$target
+	cptime $i /tmp/$target
+	\cp -p /tmp/$target $i	# use cp since cannot mv across file systems
+	\rm /tmp/$target
+    else
+	echo "detab: cannot overwrite $i"
+    endif
+end
+#

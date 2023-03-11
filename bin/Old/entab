@@ -1,0 +1,29 @@
+#!/bin/csh
+#
+# entab files, convert spaces to tabs when possible, leaving file dates
+#   the same
+set noglob
+if ( $#argv == 0 || '-?' == "${1}"  ||  '-help' == "${1}" ) then
+    echo "Usage: entab [-a] files"
+    echo "	changes leading spaces to tabs whenever appropriate"
+    echo "	-a forces conversion even for non-leading spaces"
+    echo " (uses unexpand command, see man unexpand)"
+    exit 5
+endif
+
+set allopt=''		# assume no '-a'
+if ($1 == '-a') then
+    set allopt='-a'
+    shift
+endif
+
+foreach i ($argv[*])
+    if { test -h $i } continue	# target is symbolic link, skip it
+    if (-d $i)  continue	# target is directory, skip it
+    set target=$i:t		#strip pathname
+    unexpand $allopt $i > /tmp/$target
+    cptime $i /tmp/$target
+    \cp -p /tmp/$target $i
+    \rm /tmp/$target
+end
+#

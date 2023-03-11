@@ -1,0 +1,14 @@
+#!/bin/csh
+# shell script to remove 0x0d's from files
+set noglob
+if ($#argv < 1 || "$1" == "-?" || "$1" == "-help") then
+    echo "usage: rmcr files... "
+    echo "(removes 0x0d's (ctrl-M's) (carriage returns) from files)"
+    exit(5)
+endif
+foreach i ($*)
+    tr -d \\015 <$i > /tmp/$i
+    cptime $i /tmp/$i
+    \cp -p /tmp/$i $i
+    \rm /tmp/$i
+end

@@ -1,0 +1,25 @@
+#!/bin/csh -f
+#set echo verbose noglob nonomatch
+set noglob nonomatch
+if ($#argv == 0 || "$1" == "-help") then
+    echo "usage: $0 cmdnames ..."
+    echo "	(search dir path for cmdnames)"
+    echo "	(return non-zero if any cmdnames not found on path)"
+    exit(5)
+endif
+set retcode=0		# assume everything will be found
+foreach f ($*)
+    set notfound	# unset it if we do not find executable file $f
+    foreach i ($path)
+	if (-f $i/$f && -x $i/$f) then
+	    echo $i/$f
+	    unset notfound
+	endif
+    end
+    if ($?notfound) then
+	echo "no executable file '$f' found on path"
+	set retcode=5
+    endif
+end
+exit $retcode
+#

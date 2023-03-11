@@ -1,0 +1,14 @@
+[user]
+	name = Jim Kadin
+	email = nidak21@gmail.com
+[core]
+	editor = vi
+	fileMode = false
+[color]
+	ui = auto
+[credential "https://github.com"]
+	username = nidak21@gmail.com
+[push]
+	default = simple
+[pretty]
+        jakgraph = "%C(yellow)%h %C(red)%d %C(green)%cd %C(reset) %s"

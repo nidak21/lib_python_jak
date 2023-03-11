@@ -1,0 +1,6 @@
+#!/bin/bash
+
+# simulate stdout, stderr, and return code
+echo "$$ stdout:  $1"
+echo "$$ stderr:  $2" >&2
+exit $3

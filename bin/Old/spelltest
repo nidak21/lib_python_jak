@@ -1,0 +1,17 @@
+#!/bin/csh
+# print words on the command line that are not spelled right
+if ($#argv < 1 || "$1" == "-?" || "$1" == "-help") then
+usage:
+    echo usage: spelltest \[ -l \] words... 
+    echo \(prints misspelled words. -l uses spelling list "~/.spellist.$SPELL"\)
+    exit(5)
+endif
+if ("$1" == "-l") then
+    if ($#argv == 1) goto usage
+    echo "the following words are misspelled:"
+    echo $argv[*] | spell  +/users2/jak/.spellist.$SPELL
+else
+    echo "the following words are misspelled:"
+    echo $argv[*] | spell		# use default hash table
+endif
+#

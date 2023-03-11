@@ -1,0 +1,78 @@
+#!/bin/bash
+# example bash script
+
+function Usage() {
+    cat - <<ENDTEXT
+
+$0 [-f feed] [-d DAFoutput] [-b BGIoutput] [MGI IDs ...]
+
+    here is a summary...
+
+    -f --file  blah blah blah	
+ENDTEXT
+    exit 5
+}
+# one way to do cmd line args:
+while [ $# -gt 0 ]; do
+    case "$1" in
+    -h|--help) Usage ;;
+    -f|--file) echo file "$2" shift; shift; ;;
+    -o|--output) echo output "$2" shift; shift; ;;
+    -*|--*) echo "invalid option $1"; Usage ;;
+    *) break; ;;
+    esac
+done
+echo remaining args: "$*"
+
+# example assignments
+dir="$(dirname $0)"
+
+# example if:
+if [ "$1" == --help -o "$1" == "-h" ]; then
+    Usage
+else
+    ...
+fi
+# example for loop:
+for i in $( ls ); do
+    echo 'filename: ' $i
+done
+# or
+for i in 'x', 'y', 'z'; do
+
+
+# example output redirections.   use >> to append to output
+cmd foo >>blah		# append stdout
+cmd foo >&2		# write to stderr instead of stdout ?
+cmd foo >>&2		# write/append to stderr instead of stdout ?
+cmd foo 2>blah		# redirect stderr to blah
+cmd foo 2>>blah		# redirect/append stderr to blah
+cmd foo &>blah		# redirect both stderr and stdout to blah
+cmd foo >>blah 2>&1	# redirect/append both stderr & stdout to blah
+
+# special characters
+echo $'\101'	# echos:  A (decimal 65)
+
+# another way to do cmd line args - using getopt, doesn't seem to support
+#  --params
+args=$(getopt f:d:j: $*)	# $args gets:  options... -- position params...
+if [ $? != 0 ]; then
+    Usage
+fi
+set -- $args 	# assigns $args as $1, $2, ...
+for i; do		# loop through $1, $2, ...
+    case "$i" in
+    -f) case "$2" in
+	daf) runBGI=F;;
+	bgi) runDAF=F;;
+	*)   Usage;;
+	esac
+	shift; shift;
+	;;
+    -d) DAFoutput="$2"; shift; shift
+	;;
+    -b) BGIoutput="$2"; shift; shift
+	;;
+    --) shift; break;;	# beginning of positional params
+    esac
+done

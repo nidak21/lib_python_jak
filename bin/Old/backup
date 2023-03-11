@@ -1,0 +1,90 @@
+#!/bin/sh
+
+# backup script to:
+#    tar up files in specific directories
+#    exclude certain directories/files
+# and put the tar file somewhere - intended to be on some other disk somewhere.
+# Does full and incremental backups
+
+targetDir=/Volumes/jak/MacBackups	# where backups should be stored
+#targetDir=$HOME				# where backups should be stored
+dateString=`date "+%Y.%m.%d-%H.%M"`
+excludeFiles="$HOME/.backupExcludes"	# file of tar exclude patterns
+incrFiles="$HOME/.backupChangedFiles"	# file to hold names of changed files
+lastFullBackupFile=$targetDir/LastFullBackupDate	# touch file of last
+							# full backup date
+backupType="full"		# default backup type
+
+if [ "$1" == "--help" -o "$#" -gt 1 ]; then
+    echo "$0 {full|incremental}"
+    echo "puts backups in $targetDir"
+    exit 5
+fi
+if [ $# -eq 1 ]; then
+    backupType=$1
+fi
+
+# list of directories/files to backup
+# all relative to home directory
+toBackUp=( \
+   ./work         \
+   ./bin          \
+   ./Desktop      \
+   ./other        \
+   ./Documents    \
+   ./lib          \
+   ./manager      \
+   ./oboedit_config\
+   ./Signatures   \
+   ./.bash*	   \
+   ./.exrc	   \
+   ./.vimrc	   \
+   ./.gitconfig   \
+)
+
+# list of directories/files to exclude from backup
+# only need to exclude things if they are in the directories above
+cat - > $excludeFiles <<-EndOfExcludes
+	*/Statistics_I/Videos/
+	*/venv/
+	*/Stale/
+	*/.git/
+	*/About?Stacks*
+	*/Microsoft?User?Data*
+EndOfExcludes
+
+cd	# run everything from home directory
+
+if [ "$backupType" == "full" ]; then
+    archiveName=$targetDir/full.${dateString}.tar.bzip2
+
+    tar -cvyf $archiveName -X $excludeFiles ${toBackUp[*]}
+
+    touch $lastFullBackupFile 		# remember full backup date/time
+
+elif [ "$backupType" == incremental ]; then
+    if [ ! -f $lastFullBackupFile ]; then
+	echo "$0:   $lastFullBackupFile does not exist."
+	echo "$0:   Please do a full backup instead of an incremental"
+	exit 5
+    fi
+    archiveName=$targetDir/incr.${dateString}.tar.bzip2
+
+    	# Use find to get list of files updated since last full backup.
+	# Cannot use tar '--newer-than' option because if a containing dir
+	#  of a changed file is not itself changed, tar doesn't go into
+	#  that directory.
+    find ${toBackUp[*]} -type f -newer $lastFullBackupFile -print >$incrFiles
+    echo
+    echo "$0:   backing up files since" `stat -f "%t%Sm" $lastFullBackupFile`
+    echo
+    tar -cvyf $archiveName -T $incrFiles -X $excludeFiles
+    rm -f $incrFiles
+else
+    echo "$0:   invalid backup type: $backupType"
+    exit 5
+fi
+
+rm -f $excludeFiles
+
+exit 0

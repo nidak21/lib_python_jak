@@ -1,0 +1,28 @@
+# set colored prompt
+#  30m=black  34m=blue 36m=cyan  32m=green  35m=purple  31m=red 37m=white
+#  33m=yellow
+#  0;=normal text  1;=bold or light text (depends on terminal)
+#  2;=dim text  4;=underlined 7=reverse text & background
+#  \[\033[00m\] ends coloring
+export PS1="\[\033[1;34m\]Mac \w:\[\033[00m\] "
+
+LESS="-X -R --QUIT-AT-EOF"
+export LESS
+
+# bash aliases
+set -o vi		# set vi command editing mode
+
+alias t="less"
+alias er=rm
+function l() { ls -CF $* | less; }
+function ll() { ls -l $* | less; }
+#  alias cp="cp --preserve=timestamp" # solaris?
+alias cp="cp -p"			# mac
+alias finder="open ."			# mac
+
+#alias gitcommitgraph='git log --oneline --graph --all --decorate'
+alias gitcommitgraph="git log --pretty=jakgraph --graph --all --decorate --date=short"
+alias gitcommits='git log --decorate=short'
+alias gitcommits+='git log --decorate=short --name-status'
+alias s="git status"
+

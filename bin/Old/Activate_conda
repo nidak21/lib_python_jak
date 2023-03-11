@@ -1,0 +1,23 @@
+# source this to activate Anaconda python
+
+if [ "${1}" == "" -o "${1}" == "3" ]; then
+    anacondaVers=3	# Anaconda version with Python 3.7
+    PYTHONPATH=.:..:../../:./lib:~/work/autolittriage:~/work/MLtextTools:~/lib/python3:~/lib/python3/mgi:~/lib/python3/site-packages
+    PATH=.:~/bin:~/work/autolittriage:~/work/MLtextTools:"$SYSTEMPATH"
+    MGICONFIG=~/work/mgiconfig3
+    export MGICONFIG
+
+elif [ "${1}" == "2" ]; then    # SHOULDN'T BE USING THIS ANYMORE
+    anacondaVers=2	# Anaconda version with Python 2.7
+    PYTHONPATH=.:..:../../:./lib:~/work/autolittriage:~/work/MLtextTools:~/lib/python2:~/lib/python2/mgi:~/lib/python2/site-packages
+    PATH=.:~/bin:~/work/autolittriage:~/work/MLtextTools:"$SYSTEMPATH"
+
+else
+    echo "invalid argument '${1}', should be 2 or 3"
+fi
+export PYTHONPATH
+
+rootDir=/opt
+anacondaRoot=$rootDir/anaconda${anacondaVers}
+eval "$(${anacondaRoot}/bin/conda shell.bash hook)" 
+export PS1="\[\033[1;34m\]Mac AC${anacondaVers} \w:\[\033[00m\] "

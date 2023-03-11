@@ -1,0 +1,13 @@
+#!/bin/csh
+# run spell from vi putting misspell list at end of file
+tee /tmp/vis$$
+set sp
+echo "---Spelling List---"
+if ( ${?SPELL} == 1 ) then
+    if ( -f ~/.spellist.$SPELL ) then
+	set sp="+/users2/jak/.spellist.$SPELL"
+    endif
+endif
+spell $sp /tmp/vis$$
+\rm /tmp/vis$$
+#

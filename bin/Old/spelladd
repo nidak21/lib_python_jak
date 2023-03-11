@@ -1,0 +1,26 @@
+#!/bin/csh
+# add the words in $1 to our list of spelling words (.spellist) (IBMRT)
+if ($#argv == 0 || "$1" == "-?" || "$1" == "-help") then
+usage:
+    echo "usage: spelladd {-w words | files}"
+    echo "	(adds words to ~/.spellist.$SPELL)"
+    exit(5)
+endif
+touch ~/.spellist.$SPELL
+if ("$1" == "-w") then
+	if ($#argv == 1) goto usage
+	foreach i ($argv[2-$#argv])	
+	    echo $i >> ~/.spellist.$SPELL
+	end
+else
+	if (-e $1) then
+	    cat $argv[*] >> ~/.spellist.$SPELL
+	else
+	    echo "spelladd: file $1 does not exist."
+	    exit(5)
+	endif
+endif
+sort -df -o ~/.spellist.$SPELL ~/.spellist.$SPELL	# to keep list in order
+#if (-e ~/.spelltbl.$SPELL) \rm ~/.spelltbl.$SPELL
+#spellin <~/.spellist.$SPELL /usr/dict/hlista > ~/.spelltbl.$SPELL
+#

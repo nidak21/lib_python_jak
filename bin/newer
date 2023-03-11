@@ -1,0 +1,21 @@
+#!/bin/csh
+# print "newer" to stdout if $1 is a newer file than $2
+#set echo verbose noglob nonomatch
+
+set script=file
+set script={script:t}
+if ($#argv != 2  ||  "-?" == "$1"  ||  "-help" == "$1") then
+usage:
+    echo "usage: $script file1 file2"
+    echo "	Print 'newer' to stdout if file1 is newer than file2"
+    echo "	  (or if file2 does not exist)."
+    echo "	Assumes file1 does exist."
+    exit 5
+endif
+
+if ( ! -f $2) then		# $2 does not exist
+    echo newer
+else				# $2 exists
+    find $1 -prune -newer $2 -exec echo newer \;
+endif
+# %%%%%%%%%%%%%%%%%%%%%%

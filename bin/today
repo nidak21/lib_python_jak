@@ -1,0 +1,20 @@
+#!/bin/sh
+# list files that have changed today
+script=`basename $0`
+set -f # turn off filename generation
+usage () {
+    echo "Usage: $script [directories]"
+    echo "	lists all files under directories that have changed today."
+    echo "	does current directory if none are specified."
+    exit 5
+}
+if [ '-?' = "$1"  -o  '-help' = "$1" ];then
+    usage
+fi
+if [ $# = 0 ];then
+    dirs='.'
+else
+    dirs="$*"
+fi
+find $dirs -name Library -prune -o -name .git -prune -o -type f -mtime -1 -print
+#

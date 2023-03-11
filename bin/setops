@@ -1,0 +1,100 @@
+#!/usr/bin/env python
+
+# Read text files and output set union/intersection/difference of their lines
+#
+
+import sys
+import argparse
+
+def parseCmdLine():
+    parser = argparse.ArgumentParser( \
+    description='Apply set operations to lines in text files, write to stdout.')
+
+    parser.add_argument('-i', '--intersect', dest='setOp', action='store_const',
+        const='intersect', default='intersect',
+        help="do set intersection of all the files (default)")
+
+    parser.add_argument('-u', '--union', dest='setOp', action='store_const',
+        const='union', default='intersect',
+        help="do set union of all the files")
+
+    parser.add_argument('--diff', '--difference', dest='setOp',
+        action='store_const', const='difference', default='intersect',
+        help="do set difference (1st file minus all the other files)")
+
+    parser.add_argument('-d', '--delim', dest='delim', action='store',
+        default='\n', required=False,
+        help="line/record delimiter. Default: \\n")
+
+    parser.add_argument('-v', '--verbose', dest='verbose', action='store_true',
+        help="include helpful messages to stderr")
+
+    parser.add_argument('fileNames', nargs=argparse.REMAINDER,
+        help="input files. '-' for stdin")
+
+    args = parser.parse_args()
+
+    if len(args.fileNames) < 2:
+        sys.stderr.write("need at least 2 filenames\n")
+        exit(5)
+
+    return args
+#---------------------------
+
+args = parseCmdLine()
+
+#---------------------------
+
+def readFiles():
+    """
+    Return list of the records/lines for each file,
+    e.g., [ [rcds from file0], [rcds from file1], ... ]
+    """
+    rcdLists = []
+    for fn in args.fileNames:
+        if fn == '-': fp = sys.stdin
+        else: fp = open(fn, 'r')
+
+        fileRecords = fp.read().split(args.delim)
+        if fileRecords[-1] == '': del fileRecords[-1]
+
+        rcdLists.append(fileRecords)
+    return rcdLists
+#---------------------------
+
+def main():
+    verbose("set operation: %s\n" % (args.setOp))
+
+    rcdLists = readFiles()
+    resultSet = set(rcdLists[0])
+
+    for i, rcdList in enumerate(rcdLists):
+            verbose("%s %d lines\n" % (args.fileNames[i], len(rcdList)))
+
+            if i == 0: continue
+
+            thisSet = set(rcdList)
+
+            if   args.setOp == 'intersect':  resultSet &= thisSet
+            elif args.setOp == 'union':      resultSet |= thisSet
+            elif args.setOp == 'difference': resultSet -= thisSet
+            else:		# shouldn't happen, but good to check
+                sys.stderr.write("invalid set operation '%s'\n" % args.setOp)
+                exit(5)
+
+    verbose("results %d lines\n" % (len(resultSet)))
+
+    outputDelim = args.delim	# should this be a separate cmd line argument?
+    results = outputDelim.join([ element for element in resultSet])
+    sys.stdout.write(results)
+    if len(resultSet):  # have at least one result, write delim for last element
+        sys.stdout.write(outputDelim)
+#---------------------------
+
+def verbose(text):
+    if args.verbose:
+        sys.stderr.write(text)
+        sys.stderr.flush()
+
+if __name__ == "__main__":
+    main()
