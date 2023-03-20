@@ -4,6 +4,15 @@
 #
 ##############################
 import sys
+import subprocess
+
+def runShCommand(cmd):
+    """ Run the specified shell cmd (string)
+        Return (exitCode, stdout, stderr) from the command
+    """
+    cp = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+    return cp.returncode, cp.stdout, cp.stderr
+# end runCommand() ------------------------------
 
 def importPyFile(pyFile):
     ''' Given a python file pathname (w/ or w/o .py),
