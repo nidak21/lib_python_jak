@@ -9,6 +9,9 @@ import subprocess
 def runShCommand(cmd):
     """ Run the specified shell cmd (string)
         Return (exitCode, stdout, stderr) from the command
+        If the shell cmd does not write to stdout (or stderr), the return
+            value will be ''
+        If the shell cmd does write, they are '\n' terminated
     """
     cp = subprocess.run(cmd, shell=True, capture_output=True, text=True)
     return cp.returncode, cp.stdout, cp.stderr
@@ -27,7 +30,7 @@ def importPyFile(pyFile):
     if pyDir != '': del sys.path[0]
 
     return myModule
-#-----------------------------------
+# end importPyFile()-----------------------------------
 
 def sublistFind(biglist, sublist, *args):
     """
@@ -74,29 +77,7 @@ def sublistFind(biglist, sublist, *args):
         else:               start += 1		# try again
 
     return -1
-##############################
+# end sublistFind()-----------------------------------
 
-if __name__ == "__main__":	# ad hoc test code
-    x = [1,2,3,4,5,6,3,4,7]
-    print(sublistFind(x,[3,4,7],0,100))
-    print(sublistFind(x,[3,4,7],6,9))
-
-    print(sublistFind(x,[3,4,5]))
-    print(sublistFind(x,[3,4,5], 2))
-    print(sublistFind(x,[3,4,5], 3))
-    print(sublistFind(x,[3,4,5], 4))
-    print(sublistFind(x,[3,4,], 2))
-    print(sublistFind(x,[3,4,], 3))
-    print(sublistFind(x,[3,4,], 7))
-    print(sublistFind(x,[3,4,], 18))
-#    print(sublistFind(x,[3,4,8]))
-#    print(sublistFind(x,[9,4,8]))
-    print(sublistFind(x,[3,4,7],0,8))
-    print(sublistFind(x,[3,4,7],7,9))
-#    print(sublistFind(x,[]))
-#    print(sublistFind([3],[3,4,5]))
-#    print(sublistFind([3],[3,]))
-
-#    print(sublistFind(x,[3,4,8]))
-#    print(sublistFind(x,[9,4,8]))
-#    print(sublistFind(x,[3,4,7]))
+if __name__ == "__main__":
+    pass
