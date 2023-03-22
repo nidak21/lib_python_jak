@@ -4,6 +4,7 @@
 #
 ##############################
 import sys
+import os
 import subprocess
 
 def runShCommand(cmd):
